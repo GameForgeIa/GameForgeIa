@@ -1,14 +1,19 @@
+# Exported from Render on 2026-07-17T13:59:53Z
+version: "1"
 services:
-  - type: web
-    name: forgegameia-backend
-    env: python
-    plan: free
-    buildCommand: "pip install -r backend/requirements.txt"
-    startCommand: "cd backend && uvicorn main:app --host 0.0.0.0 --port $PORT"
-    envVars:
-      - key: GEMINI_API_KEY
-        sync: false
-      - key: SUPABASE_URL
-        sync: false
-      - key: SUPABASE_KEY
-        sync: false
+- type: web
+  name: forgegameia-backend
+  runtime: python
+  repo: https://github.com/GameForgeIa/GameForgeIa
+  plan: free
+  envVars:
+  - key: SUPABASE_URL
+    sync: false
+  - key: SUPABASE_KEY
+    sync: false
+  - key: GEMINI_API_KEY
+    sync: false
+  region: europe
+  buildCommand: pip install -r backend/requirements.txt
+  startCommand: cd backend && uvicorn main:app --host 0.0.0.0 --port $PORT
+  autoDeployTrigger: commit
