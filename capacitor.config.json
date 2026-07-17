@@ -1,9 +1,0 @@
-{
-  "appId": "com.forgegameia.chat",
-  "appName": "ForgeGameIA",
-  "webDir": "forge_web",
-  "bundledWebRuntime": false,
-  "android": {
-    "allowMixedContent": true
-  }
-}
