@@ -1,0 +1,15 @@
+{
+  "name": "forge-game-ia",
+  "version": "0.1.0",
+  "description": "Wrapper Android (Capacitor, open source) de l'app de chat ForgeGameIA",
+  "scripts": {
+    "build": "echo 'Rien à compiler, forge_web est du HTML/JS statique.'"
+  },
+  "dependencies": {
+    "@capacitor/android": "^6.1.2",
+    "@capacitor/core": "^6.1.2"
+  },
+  "devDependencies": {
+    "@capacitor/cli": "^6.1.2"
+  }
+}

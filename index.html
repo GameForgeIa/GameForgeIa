@@ -1,0 +1,291 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>ForgeGameIA</title>
+<link rel="manifest" href="manifest.json">
+<style>
+  :root { color-scheme: dark; }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; font-family: -apple-system, Roboto, sans-serif;
+    background: #121016; color: #eee; display: flex; flex-direction: column;
+    height: 100vh;
+  }
+  header {
+    padding: 14px 16px; background: #1c1826; border-bottom: 1px solid #2e2840;
+    font-weight: 600; font-size: 17px; display: flex; justify-content: space-between; align-items: center;
+  }
+  header button { background: none; border: none; color: #b8a8e0; font-size: 13px; }
+  #agentBar {
+    display: flex; gap: 6px; padding: 8px 12px; overflow-x: auto;
+    background: #17141f; font-size: 11px;
+  }
+  .agent-pill {
+    padding: 4px 10px; border-radius: 12px; background: #2a2438;
+    white-space: nowrap; color: #b8a8e0; flex-shrink: 0;
+  }
+  .agent-pill.sub { background: #3a2450; color: #e0c8ff; }
+  #messages { flex: 1; overflow-y: auto; padding: 12px; }
+  .msg { max-width: 82%; margin: 6px 0; padding: 10px 14px; border-radius: 14px; line-height: 1.4; font-size: 14.5px; }
+  .msg.user { margin-left: auto; background: #6c4ed9; color: white; }
+  .msg.agent { margin-right: auto; background: #221e30; }
+  .msg .tag { display: block; font-size: 11px; opacity: 0.6; margin-bottom: 3px; }
+  .msg .files { font-size: 11px; opacity: 0.75; margin-top: 6px; }
+  #attachPreview { display: flex; gap: 6px; padding: 0 10px; overflow-x: auto; }
+  .chip {
+    background: #2a2438; border-radius: 10px; padding: 4px 10px; font-size: 12px;
+    display: flex; align-items: center; gap: 6px; white-space: nowrap;
+  }
+  .chip button { background: none; border: none; color: #ff8a8a; font-size: 13px; }
+  #inputBar { display: flex; padding: 10px; gap: 8px; background: #17141f; border-top: 1px solid #2e2840; align-items: center; }
+  #promptInput {
+    flex: 1; padding: 12px 14px; border-radius: 20px; border: none;
+    background: #221e30; color: white; font-size: 15px;
+  }
+  #attachBtn, #sendBtn {
+    background: #6c4ed9; color: white; border: none; border-radius: 20px;
+    padding: 0 16px; height: 44px; font-size: 15px; flex-shrink: 0;
+  }
+  #attachBtn { background: #2a2438; }
+  #sendBtn:disabled { opacity: 0.5; }
+  #loading { text-align: center; padding: 6px; font-size: 12px; opacity: 0.6; }
+  #fileInput { display: none; }
+  .launch-btn {
+    display: inline-block; margin-top: 8px; padding: 8px 14px; border-radius: 10px;
+    background: #2f9e58; color: white; font-size: 13px; text-decoration: none;
+  }
+</style>
+</head>
+<body>
+  <header>
+    <span>🛠️ ForgeGameIA — Studio</span>
+    <span>
+      <button id="learnBtn">📚 Apprentissage</button>
+      <button id="historyBtn">📜 Historique</button>
+      <button id="refreshAgents">Équipe ↻</button>
+    </span>
+  </header>
+  <div id="agentBar"></div>
+  <div id="messages"></div>
+  <div id="attachPreview"></div>
+  <div id="loading" style="display:none;">L'équipe travaille dessus…</div>
+  <div id="inputBar">
+    <button id="attachBtn">📎</button>
+    <input id="fileInput" type="file" multiple />
+    <input id="promptInput" placeholder="Décris ce que tu veux créer..." />
+    <button id="sendBtn">Envoyer</button>
+  </div>
+
+<script>
+// ⚠️ Remplace par l'URL de ton backend une fois déployé sur Render
+const BACKEND_URL = "https://TON-BACKEND.onrender.com";
+// Doit correspondre à package/unique_name dans game_godot/export_presets.cfg
+const GAME_PACKAGE_NAME = "com.forgegameia.lejeu";
+
+const messagesEl = document.getElementById('messages');
+const inputEl = document.getElementById('promptInput');
+const sendBtn = document.getElementById('sendBtn');
+const loadingEl = document.getElementById('loading');
+const agentBarEl = document.getElementById('agentBar');
+const attachPreviewEl = document.getElementById('attachPreview');
+const fileInputEl = document.getElementById('fileInput');
+const attachBtn = document.getElementById('attachBtn');
+
+let pendingFiles = []; // { filename, mime_type, data_base64 }
+
+addMessage("agent", "Bienvenue ! Décris ce que tu veux créer, et joins un fichier " +
+  "(image, PDF, texte) si tu veux que l'équipe s'en inspire. Le Manager route " +
+  "ta demande vers le bon agent — et peut en créer un nouveau si besoin.", null, [], false);
+
+async function loadAgents() {
+  try {
+    const res = await fetch(BACKEND_URL + "/agents");
+    const agents = await res.json();
+    agentBarEl.innerHTML = "";
+    const bigAgents = Object.entries(agents).filter(([id, a]) => !a.parent_id);
+    for (const [id, a] of bigAgents) {
+      const pill = document.createElement('span');
+      pill.className = 'agent-pill';
+      pill.textContent = a.name;
+      agentBarEl.appendChild(pill);
+      for (const [subId, sub] of Object.entries(agents)) {
+        if (sub.parent_id === id) {
+          const subPill = document.createElement('span');
+          subPill.className = 'agent-pill sub';
+          subPill.textContent = '↳ ' + sub.name;
+          agentBarEl.appendChild(subPill);
+        }
+      }
+    }
+  } catch (e) {
+    agentBarEl.innerHTML = '<span class="agent-pill">Équipe non chargée</span>';
+  }
+}
+loadAgents();
+document.getElementById('historyBtn').addEventListener('click', async () => {
+  try {
+    const res = await fetch(BACKEND_URL + "/levels");
+    const levels = await res.json();
+    if (!levels.length) {
+      addMessage("agent", "Aucun niveau généré pour l'instant.", "Historique", [], false);
+      return;
+    }
+    const div = document.createElement('div');
+    div.className = 'msg agent';
+    const tagEl = document.createElement('span');
+    tagEl.className = 'tag';
+    tagEl.textContent = 'Historique';
+    div.appendChild(tagEl);
+    div.appendChild(document.createTextNode('Touche un niveau pour le rendre actif pour la simulation :'));
+    levels.forEach(lvl => {
+      const btn = document.createElement('a');
+      btn.className = 'launch-btn';
+      btn.style.background = '#3a2450';
+      btn.style.display = 'block';
+      btn.style.marginTop = '6px';
+      btn.textContent = '🗺️ ' + lvl.name;
+      btn.href = 'javascript:void(0)';
+      btn.addEventListener('click', async () => {
+        await fetch(BACKEND_URL + "/levels/" + lvl.id + "/activate", { method: "POST" });
+        addMessage("agent", `Niveau "${lvl.name}" activé.`, "Historique", [], true);
+      });
+      div.appendChild(btn);
+    });
+    messagesEl.appendChild(div);
+    messagesEl.scrollTop = messagesEl.scrollHeight;
+  } catch (e) {
+    addMessage("agent", "❌ Impossible de récupérer l'historique.", null, [], false);
+  }
+});
+
+document.getElementById('refreshAgents').addEventListener('click', loadAgents);
+
+document.getElementById('learnBtn').addEventListener('click', async () => {
+  loadingEl.style.display = "block";
+  addMessage("user", "Va apprendre ton rôle de studio de jeu vidéo sur le web.", null, [], false);
+  try {
+    const res = await fetch(BACKEND_URL + "/studio-learn", { method: "POST" });
+    const data = await res.json();
+    if (res.ok) {
+      addMessage("agent", data.notes, "Manager (recherche web)", [], false);
+    } else {
+      addMessage("agent", "❌ Erreur pendant la recherche.", null, [], false);
+    }
+  } catch (e) {
+    addMessage("agent", "❌ Impossible de contacter le backend.", null, [], false);
+  } finally {
+    loadingEl.style.display = "none";
+  }
+});
+
+attachBtn.addEventListener('click', () => fileInputEl.click());
+fileInputEl.addEventListener('change', async () => {
+  for (const file of fileInputEl.files) {
+    const base64 = await fileToBase64(file);
+    pendingFiles.push({ filename: file.name, mime_type: file.type || "text/plain", data_base64: base64 });
+  }
+  fileInputEl.value = "";
+  renderAttachPreview();
+});
+
+function fileToBase64(file) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(reader.result.split(",")[1]);
+    reader.onerror = reject;
+    reader.readAsDataURL(file);
+  });
+}
+
+function renderAttachPreview() {
+  attachPreviewEl.innerHTML = "";
+  pendingFiles.forEach((f, i) => {
+    const chip = document.createElement('div');
+    chip.className = 'chip';
+    chip.innerHTML = `<span>📄 ${f.filename}</span>`;
+    const removeBtn = document.createElement('button');
+    removeBtn.textContent = '✕';
+    removeBtn.addEventListener('click', () => {
+      pendingFiles.splice(i, 1);
+      renderAttachPreview();
+    });
+    chip.appendChild(removeBtn);
+    attachPreviewEl.appendChild(chip);
+  });
+}
+
+function addMessage(role, text, tag, files, showLaunchButton) {
+  const div = document.createElement('div');
+  div.className = 'msg ' + role;
+  if (tag) {
+    const tagEl = document.createElement('span');
+    tagEl.className = 'tag';
+    tagEl.textContent = tag;
+    div.appendChild(tagEl);
+  }
+  div.appendChild(document.createTextNode(text));
+  if (files && files.length) {
+    const filesEl = document.createElement('div');
+    filesEl.className = 'files';
+    filesEl.textContent = '📎 ' + files.map(f => f.filename).join(', ');
+    div.appendChild(filesEl);
+  }
+  if (showLaunchButton) {
+    const btn = document.createElement('a');
+    btn.className = 'launch-btn';
+    btn.textContent = '🎮 Lancer la simulation';
+    // Ouvre l'app du jeu si elle est installée sur le téléphone.
+    // Elle recharge automatiquement le dernier niveau généré au démarrage.
+    btn.href = `intent://#Intent;package=${GAME_PACKAGE_NAME};end`;
+    btn.addEventListener('click', () => {
+      setTimeout(() => {
+        alert("Si rien ne s'est ouvert, l'app du jeu n'est probablement pas encore installée. Regarde le README pour récupérer le dernier .apk compilé.");
+      }, 1200);
+    });
+    div.appendChild(document.createElement('br'));
+    div.appendChild(btn);
+  }
+  messagesEl.appendChild(div);
+  messagesEl.scrollTop = messagesEl.scrollHeight;
+}
+
+async function send() {
+  const text = inputEl.value.trim();
+  if (!text && pendingFiles.length === 0) return;
+  addMessage("user", text, null, pendingFiles, false);
+  const filesToSend = pendingFiles;
+  pendingFiles = [];
+  renderAttachPreview();
+  inputEl.value = "";
+  sendBtn.disabled = true;
+  loadingEl.style.display = "block";
+
+  try {
+    const res = await fetch(BACKEND_URL + "/chat", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ message: text, attachments: filesToSend }),
+    });
+    const data = await res.json();
+    if (res.ok) {
+      const isLevel = data.output_type === "level_json";
+      addMessage("agent", data.reply, "Agent: " + data.agent_name, [], isLevel);
+      loadAgents(); // au cas où un sous-agent vient d'être créé
+    } else {
+      addMessage("agent", "❌ Erreur serveur.", null, [], false);
+    }
+  } catch (e) {
+    addMessage("agent", "❌ Impossible de contacter le backend. Vérifie l'URL configurée.", null, [], false);
+  } finally {
+    sendBtn.disabled = false;
+    loadingEl.style.display = "none";
+  }
+}
+
+sendBtn.addEventListener('click', send);
+inputEl.addEventListener('keydown', (e) => { if (e.key === 'Enter') send(); });
+</script>
+</body>
+</html>
