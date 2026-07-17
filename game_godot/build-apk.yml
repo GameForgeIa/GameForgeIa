@@ -1,0 +1,32 @@
+name: Build Android APK
+
+# Se déclenche à chaque envoi de code sur la branche principale,
+# ou manuellement depuis l'onglet "Actions" de GitHub (bouton "Run workflow").
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'game_godot/**'
+  workflow_dispatch:
+
+jobs:
+  export-android:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Récupérer le code
+        uses: actions/checkout@v4
+
+      - name: Exporter le projet Godot en APK
+        uses: firebelley/godot-export@v6.0.0
+        with:
+          godot_executable_download_url: https://github.com/godotengine/godot/releases/download/4.3-stable/Godot_v4.3-stable_linux.x86_64.zip
+          godot_export_templates_download_url: https://github.com/godotengine/godot/releases/download/4.3-stable/Godot_v4.3-stable_export_templates.tpz
+          relative_project_path: ./game_godot
+          archive_export_output: false
+          export_debug: true
+
+      - name: Publier l'APK comme fichier téléchargeable
+        uses: actions/upload-artifact@v4
+        with:
+          name: lejeu-apk
+          path: ./game_godot/build/*.apk
