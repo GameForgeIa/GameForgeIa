@@ -10,5 +10,5 @@ services:
         sync: false
       - key: https://acygynvrlutuezjdhetd.supabase.co
         sync: false
-      - key: SUPABASE_KEY
+      - key: sb_publishable_0Gps9Mbnx2pbcjYN5YIzjA_8749mEaa
         sync: false
