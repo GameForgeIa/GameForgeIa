@@ -6,7 +6,7 @@ services:
     buildCommand: "pip install -r backend/requirements.txt"
     startCommand: "cd backend && uvicorn main:app --host 0.0.0.0 --port $PORT"
     envVars:
-      - key: GEMINI_API_KEY
+      - key: AQ.Ab8RN6IZDYHb1QzlPqeJfuCLCSgPnwD2g5LkubiXd0s1umlS7Q
         sync: false
       - key: https://acygynvrlutuezjdhetd.supabase.co
         sync: false
