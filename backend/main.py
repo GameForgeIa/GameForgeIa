@@ -12,7 +12,7 @@ Changements majeurs :
   studio de jeu vidéo, et garder ces notes en mémoire durable.
 
 Variables d'environnement nécessaires (à définir dans Render) :
-  GEMINI_API_KEY   -> clef gratuite sur aistudio.google.com
+  GEMINI_API_KEY   -> AQ.Ab8RN6IZDYHb1QzlPqeJfuCLCSgPnwD2g5LkubiXd0s1umlS7Q
   SUPABASE_URL     -> URL de ton projet Supabase
   SUPABASE_KEY     -> clef "anon" ou "service_role" de ton projet Supabase
 
