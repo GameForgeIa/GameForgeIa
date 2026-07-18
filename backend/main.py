@@ -13,7 +13,7 @@ Changements majeurs :
 
 Variables d'environnement nécessaires (à définir dans Render) :
   GEMINI_API_KEY   -> clef gratuite sur aistudio.google.com
-  SUPABASE_URL     -> URL de ton projet Supabase
+  SUPABASE_URL     -> https://acygynvrlutuezjdhetd.supabase.co
   SUPABASE_KEY     -> clef "anon" ou "service_role" de ton projet Supabase
 
 ⚠️ Note sur le coût : Gemini est gratuit pour la génération de texte/JSON
