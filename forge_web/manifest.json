@@ -1,0 +1,11 @@
+{
+  "name": "ForgeGameIA",
+  "short_name": "ForgeGameIA",
+  "start_url": "./index.html",
+  "display": "standalone",
+  "background_color": "#121016",
+  "theme_color": "#1c1826",
+  "icons": [
+    { "src": "icon.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable" }
+  ]
+}
