@@ -1,0 +1,52 @@
+name: Build ForgeGameIA APK
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'forge_web/**'
+      - 'capacitor.config.json'
+      - 'package.json'
+  workflow_dispatch:
+
+jobs:
+  build-android:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Récupérer le code
+        uses: actions/checkout@v4
+
+      - name: Installer Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Installer Java (nécessaire pour Gradle/Android)
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+
+      - name: Installer les dépendances
+        run: npm install
+
+      - name: Ajouter la plateforme Android (générée à chaque build)
+        run: npx cap add android
+
+      - name: Générer les icônes de l'app à partir du logo
+        run: npx @capacitor/assets generate --android --iconBackgroundColor '#121016' --iconBackgroundColorDark '#121016'
+
+      - name: Synchroniser le contenu web vers le projet Android
+        run: npx cap copy android
+
+      - name: Compiler l'APK
+        run: |
+          cd android
+          chmod +x gradlew
+          ./gradlew assembleDebug
+
+      - name: Publier l'APK comme fichier téléchargeable
+        uses: actions/upload-artifact@v4
+        with:
+          name: forgegameia-apk
+          path: android/app/build/outputs/apk/debug/app-debug.apk

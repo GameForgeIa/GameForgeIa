@@ -1,0 +1,19 @@
+name: Traitement nocturne de la file d'attente
+
+# Se déclenche chaque nuit à 3h du matin (heure de Paris, approximatif
+# selon l'heure d'été/hiver puisque cron GitHub utilise l'heure UTC).
+# Peut aussi être lancé manuellement depuis l'onglet Actions.
+on:
+  schedule:
+    - cron: '0 2 * * *'   # 2h UTC ≈ 3h ou 4h en France selon la saison
+  workflow_dispatch:
+
+jobs:
+  process-queue:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Traiter les prompts en attente
+        run: |
+          curl -X POST "${{ secrets.BACKEND_URL }}/queue/process" \
+            -H "X-Queue-Secret: ${{ secrets.QUEUE_SECRET }}" \
+            --fail --show-error
