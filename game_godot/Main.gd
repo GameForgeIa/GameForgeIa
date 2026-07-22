@@ -1,7 +1,7 @@
 extends Node3D
 
 # ⚠️ Remplace par l'URL de ton backend une fois déployé sur Render
-const BACKEND_URL := "https://TON-BACKEND.onrender.com/latest-level"
+const BACKEND_URL := "https://forgegameia-backend.onrender.com/latest-level"
 
 const TILE_SIZE := 2.0
 
